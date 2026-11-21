@@ -409,10 +409,10 @@ elseif CLIENT then
 			},
 			{
 				key = "RMB",
-				controlName = "start chase",
+				controlName = "start chasing",
 				netVarCD = "secondaryFireCooldown",
-				netVarTie = "canSecondaryFire",
-				icon = iconTable.secondaryFire,
+				netVarTie = "CanChase",
+				icon = "chase",
 			},
 			{
 				key = "LMB",
@@ -433,10 +433,8 @@ elseif CLIENT then
 		-- This is mainly used to update the hud for the cooldowns
 
 		function hud.AlsoThink()
-			local globalCooldown = slasher:GetNW2Float("globalCooldown", 0)
-
 			for _, control in ipairs(handleCooldowns) do
-				local cooldown = math.max(slasher:GetNW2Float(control.netVarCD, 0), globalCooldown)
+				local cooldown = math.max(slasher:GetNW2Float(control.netVarCD, 0), slasher:GetNW2Float("globalCooldown", 0))
 
 				hud:SetControlText(control.key, (cooldown <= 0) and SlashCo.LangTable[control.controlName] or string.format( "[ %.1f ] %s", cooldown, SlashCo.LangTable[control.controlName]))
 			end
