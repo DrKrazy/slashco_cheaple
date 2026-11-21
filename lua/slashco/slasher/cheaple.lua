@@ -41,6 +41,11 @@ SLASHER.DiffRating = "★★★☆☆"
 SLASHER.StunTime = 1
 
 SLASHER.Config = {
+	Clones = {
+		maxAmount = 10,
+		spawnInterval = 1
+	},
+
 	-- Abilities
 	-- Every ability has a shared globalCooldown variable.
 
@@ -124,12 +129,12 @@ function SLASHER.OnSpawn(slasher)
 
 	-- Timer set to happen infinitely, timer.IsPaused isnt available yet so we just do the comparing init
 	-- Need a way to pause this time when there is no 2011x, i can't find a function for it though, help
-	--[[ timer.Create("passiveClones" .. slasher:EntIndex(),SLASHER.Config.Clones.spawnTimer, -1, function()
+	timer.Create("passiveClones" .. slasher:EntIndex(),SLASHER.Config.Clones.spawnInterval, -1, function()
 		if not IsValid(slasher) then return end
 		if (#ents.FindByClass(SLASHER.Config.specialAbility.cloneEntity) >= SLASHER.Config.Clones.maxAmount) then return end
 
 		SLASHER.spawnTpClone(SlashCo.RandomPosLocator())
-	end) ]]
+	end)
 end
 
 -- This happens on every tick, lord have mercy this shit sucks
@@ -139,7 +144,7 @@ function SLASHER.OnTickBehaviour(slasher)
 	-- Just starts the chase automatically when a survivor is within the range and FOV of the slasher
 	local foundPlayers = slasher:FindPlayersInView(SLASHER.ChaseRange, SLASHER.ChaseRadius, false)
 	for _, chasePlayer in ipairs(foundPlayers) do
-		if IsValid(chasePlayer) and chasePlayer:Team() == TEAM_SURVIVOR and not slasher:GetNW2Bool("InSlasherChaseMode") then
+		if IsValid(chasePlayer) and chasePlayer:Team() == TEAM_SURVIVOR and not slasher:GetInSlasherChaseMode() then
 			SlashCo.StartChaseMode(slasher, true)
 		end
 	end
@@ -221,12 +226,11 @@ end
 
 -- F
 function SLASHER.OnSpecialAbilityFire(slasher)
-	if not slasher:GetNW2Bool("canSpecialAbility") then return end
 
 	local trace = util.TraceLine(
 		{
 			start = slasher:EyePos(),
-			endpos = slasher:EyePos() + slasher:GetAimVector() * 64,
+			endpos = slasher:EyePos() + slasher:GetAimVector() * 2048,
 			ignoreworld = true,
 			filter = { SLASHER.Config.specialAbility.cloneEntity },
 			whitelist = true
@@ -237,11 +241,6 @@ function SLASHER.OnSpecialAbilityFire(slasher)
 	if (trace.Hit and trace.Entity:IsValid()) then
 
 		local entity = trace.Entity
-
-		if not isValid(entity) then
-			return false
-		end
-
 		local tempPos, tempAngle = slasher:GetPos(), slasher:GetAngles()
 
 		slasher:SetPos(trace.Entity:GetPos())
@@ -265,12 +264,12 @@ function SLASHER.Animator(ply)
 	end
 
 	if ply:IsOnGround() then
-		ply.CalcIdeal = ACT_HL2MP_WALK
-		ply.CalcSeqOverride = ply:LookupSequence("run")
+		ply.CalcIdeal = ACT_HL2MP_RUN
+		ply.CalcSeqOverride = ply:LookupSequence("run_all")
 
 		if ply:GetVelocity():LengthSqr() == 0 then
 			ply.CalcIdeal = ACT_IDLE
-		ply.CalcSeqOverride = ply:LookupSequence("idle")
+			ply.CalcSeqOverride = ply:LookupSequence("idle")
 		end
 	else
 		ply.CalcSeqOverride = ply:LookupSequence("float")
@@ -406,13 +405,6 @@ elseif CLIENT then
 				netVarCD = "mainAbilityCooldown",
 				netVarTie = "canMainAbility",
 				icon = iconTable.mainAbility,
-			},
-			{
-				key = "RMB",
-				controlName = "start chasing",
-				netVarCD = "secondaryFireCooldown",
-				netVarTie = "CanChase",
-				icon = "chase",
 			},
 			{
 				key = "LMB",
